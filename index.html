@@ -12,7 +12,10 @@
     <h1 class="mb-4">Gestión de Usuarios</h1>
     <form id="formulario" class="mb-3">
       <div class="input-group">
-        <input type="text" id="nombre" class="form-control" placeholder="Ingresa un nombre" required>
+        <select class="form-control" id="nombre" name="txtRol" required>
+                <option value="" selected disabled>Seleccione</option>
+                <option value="prueba">prueba</option>
+        </select><br> 
         <button class="btn btn-primary" type="submit">Agregar</button>
       </div>
     </form>
