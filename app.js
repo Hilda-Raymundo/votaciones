@@ -458,7 +458,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
   } 
-  else if (path.endsWith('index.html')  || path === '/' || path === '' || path ==='votaciones/') {
+  else if (path.endsWith('index.html')  || path.endsWith('votaciones/') || path === '')) {
     await obtenerDepartamentosYllenarSelect();
   } 
   else if (path.endsWith('votaciones.html')) {
