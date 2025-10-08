@@ -30,6 +30,7 @@ async function obtenerDepartamentosYllenarSelect() {
       .order('nombre');
 
     if (error) throw error;
+
     if (!data || !data.length) {
       selectEl.innerHTML = '<option value="" disabled>No hay departamentos</option>';
       return;
@@ -57,7 +58,6 @@ async function obtenerDepartamentosYllenarSelect() {
     }
   });
 }
-
 
 async function obtenerRolesPorDepartamento(deptoId) {
   const { data, error } = await db
@@ -103,6 +103,7 @@ function mostrarRolesHtml(roles, departamentoId) {
   });
 }
 
+// ------------------- Candidatos -------------------
 function mostrarCandidatosHtml(candidatos, contenedorId = 'candidatosContainer') {
   const cont = document.getElementById(contenedorId);
   if (!cont) return;
@@ -153,7 +154,6 @@ function mostrarCandidatosHtml(candidatos, contenedorId = 'candidatosContainer')
   if (btn) {
     btn.disabled = true; // inicialmente deshabilitado
     cont.addEventListener('click', () => {
-      // habilitar si hay seleccionado
       const anyChecked = cont.querySelector('input[name="candidato"]:checked');
       btn.disabled = !anyChecked;
     });
@@ -161,10 +161,8 @@ function mostrarCandidatosHtml(candidatos, contenedorId = 'candidatosContainer')
   }
 }
 
-
-// ------------------- Preparar Ronda -------------------
+// ------------------- Ronda -------------------
 async function prepararRondaYMostrarCandidatos(deptoId, rolId) {
-  // Buscar o crear ronda abierta
   let { data: rd } = await db
     .from('rondas')
     .select('*')
@@ -218,32 +216,26 @@ async function votarSeleccionado() {
   const ronda = window.rondaActual;
   if (!ronda) { alert('Ronda no encontrada.'); return; }
 
-  // Insertar voto en la base
   const { error } = await db.from('votos').insert([{ ronda_id: ronda.id, candidato_id: candidatoId }]);
   if (error) { console.error(error); alert('Error al votar'); return; }
 
-  // Deseleccionar todos los candidatos
   const cont = document.getElementById('candidatosContainer');
   cont.querySelectorAll('.candidato-card').forEach(c => c.classList.remove('selected'));
   cont.querySelectorAll('.candidatoRadio').forEach(r => r.checked = false);
 
-  // Deshabilitar botón de votar hasta nueva selección
   const btn = document.getElementById('btnVotar');
   if (btn) btn.disabled = true;
 
-  // Mostrar toast correctamente
-  const toastEl = document.querySelector('#toastVoto .toast'); // aquí apuntamos al div con clase toast
+  const toastEl = document.querySelector('#toastVoto .toast');
   const toast = new bootstrap.Toast(toastEl);
   toast.show();
-  
-  // Esconder automáticamente después de 2.5 seg
-    setTimeout(() => {
-      toastEl.classList.remove('show');
-    }, 1500);
+
+  setTimeout(() => {
+    toastEl.classList.remove('show');
+  }, 1500);
 }
 
-
-// ==================== INFORME / TERMINAR ====================
+// ------------------- Informe y ganador -------------------
 async function cargarRondasAbiertasEnSelect() {
   const sel = document.getElementById('rondasSelect');
   if (!sel) return;
@@ -315,88 +307,67 @@ async function cargarInformeParaRonda(rondaId) {
   });
 
   cont.appendChild(table);
-   
 
-// 🔁 Botón "Repetir ronda sin ganador"
-if (infoRonda.estado !== 'closed') {
-  const repetirDiv = document.createElement('div');
-  repetirDiv.className = 'mt-3';
-
-  const btnRepetir = document.createElement('button');
-  btnRepetir.id = 'btnRepetirSinGanador';
-  btnRepetir.className = 'btn btn-warning';
-  btnRepetir.textContent = 'Repetir ronda (sin ganador)';
-
-  btnRepetir.addEventListener('click', async () => {
-    const confirmar = confirm('¿Desea cerrar esta ronda y crear una nueva sin asignar ganador?');
-    if (!confirmar) return;
-
-    // 1️⃣ Cerrar ronda actual
-    const { error: errCerrar } = await db
-      .from('rondas')
-      .update({ estado: 'closed' })
-      .eq('id', infoRonda.id);
-
-    if (errCerrar) {
-      console.error('Error al cerrar la ronda:', errCerrar);
-      alert('Error al cerrar la ronda.');
-      return;
-    }
-
-    // 2️⃣ Obtener última ronda del mismo depto/rol para numeración
-    const { data: last, error: errLast } = await db
-      .from('rondas')
-      .select('numero')
-      .eq('departamento_id', infoRonda.departamento_id)
-      .eq('rol_id', infoRonda.rol_id)
-      .order('numero', { ascending: false })
-      .limit(1);
-
-    if (errLast || !last?.length) {
-      alert('No se pudo determinar el número para la nueva ronda.');
-      return;
-    }
-
-    const nuevoNumero = last[0].numero + 1;
-
-    // 3️⃣ Crear nueva ronda
-    const { data: nueva, error: errNueva } = await db
-      .from('rondas')
-      .insert([{ 
-        departamento_id: infoRonda.departamento_id, 
-        rol_id: infoRonda.rol_id, 
-        numero: nuevoNumero, 
-        estado: 'open' 
-      }])
-      .select()
-      .single();
-
-    if (errNueva) {
-      console.error('Error al crear nueva ronda:', errNueva);
-      alert('Error al crear nueva ronda.');
-      return;
-    }
-
-    alert(`✅ Ronda ${nuevoNumero} creada exitosamente.`);
-    await cargarRondasAbiertasEnSelect();
-    await cargarInformeParaRonda(nueva.id); // mostrar la nueva ronda
-  });
-
-  repetirDiv.appendChild(btnRepetir);
-  cont.appendChild(repetirDiv);
-}
-
-  // 🎯 Evento para registrar ganador
+  // 🔹 Botón registrar ganador
   cont.querySelectorAll('.btnRegistrar').forEach(btn => {
     btn.addEventListener('click', async e => {
       const candidatoId = parseInt(e.target.dataset.id);
-      await registrarGanador(infoRonda.id, candidatoId);
-      await cargarInformeParaRonda(rondaId); // refrescar vista
+      await registrarGanador(rondaId, candidatoId);
+      await cargarInformeParaRonda(rondaId);
     });
   });
+
+  // 🔁 Repetir ronda sin ganador
+  if (infoRonda.estado !== 'closed') {
+    const repetirDiv = document.createElement('div');
+    repetirDiv.className = 'mt-3';
+    const btnRepetir = document.createElement('button');
+    btnRepetir.id = 'btnRepetirSinGanador';
+    btnRepetir.className = 'btn btn-warning';
+    btnRepetir.textContent = 'Repetir ronda (sin ganador)';
+
+    btnRepetir.addEventListener('click', async () => {
+      const confirmar = confirm('¿Desea cerrar esta ronda y crear una nueva sin asignar ganador?');
+      if (!confirmar) return;
+
+      const { error: errCerrar } = await db
+        .from('rondas')
+        .update({ estado: 'closed' })
+        .eq('id', infoRonda.id);
+
+      if (errCerrar) { console.error(errCerrar); alert('Error al cerrar la ronda.'); return; }
+
+      const { data: last, error: errLast } = await db
+        .from('rondas')
+        .select('numero')
+        .eq('departamento_id', infoRonda.departamento_id)
+        .eq('rol_id', infoRonda.rol_id)
+        .order('numero', { ascending: false })
+        .limit(1);
+
+      if (errLast || !last?.length) { alert('No se pudo determinar el número para la nueva ronda.'); return; }
+
+      const nuevoNumero = last[0].numero + 1;
+
+      const { data: nueva, error: errNueva } = await db
+        .from('rondas')
+        .insert([{ departamento_id: infoRonda.departamento_id, rol_id: infoRonda.rol_id, numero: nuevoNumero, estado: 'open' }])
+        .select()
+        .single();
+
+      if (errNueva) { console.error(errNueva); alert('Error al crear nueva ronda.'); return; }
+
+      alert(`✅ Ronda ${nuevoNumero} creada exitosamente.`);
+      await cargarRondasAbiertasEnSelect();
+      await cargarInformeParaRonda(nueva.id);
+    });
+
+    repetirDiv.appendChild(btnRepetir);
+    cont.appendChild(repetirDiv);
+  }
 }
 
-// 🔹 Registrar ganador y cerrar ronda
+// 🔹 Registrar ganador
 async function registrarGanador(rondaId, candidatoId) {
   const confirmar = confirm('¿Desea registrar a este candidato como ganador?');
   if (!confirmar) return;
@@ -412,37 +383,7 @@ async function registrarGanador(rondaId, candidatoId) {
   await cargarRondasAbiertasEnSelect();
 }
 
-// 🔹 Repetir ronda (crea nueva con votos = 0)
-async function repetirRonda(deptoId, rolId) {
-  const confirmar = confirm('¿Desea repetir la ronda? Los votos se reiniciarán.');
-  if (!confirmar) return;
-
-  const { data: last, error: errLast } = await db
-    .from('rondas')
-    .select('numero, rol_id')
-    .eq('departamento_id', deptoId)
-    .eq('rol_id', rolId)
-    .order('numero', { ascending: false })
-    .limit(1);
-
-  if (errLast || !last?.length) { alert('No se encontró la ronda original.'); return; }
-
-  const nuevoNumero = last[0].numero + 1;
-  const rolOriginal = last[0].rol_id;
-
-  const { data: nueva, error: errInsert } = await db
-    .from('rondas')
-    .insert([{ departamento_id: deptoId, rol_id: rolOriginal, numero: nuevoNumero, estado: 'open' }])
-    .select()
-    .single();
-
-  if (errInsert) { console.error(errInsert); alert('Error al crear nueva ronda.'); return; }
-
-  alert(`🔁 Ronda ${nuevoNumero} creada exitosamente.`);
-  await cargarRondasAbiertasEnSelect();
-}
-
-// ==================== INICIALIZACIÓN ====================
+// ------------------- Inicialización -------------------
 document.addEventListener('DOMContentLoaded', async () => {
   const path = window.location.pathname;
 
@@ -457,11 +398,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         await cargarInformeParaRonda(val);
       });
     }
-  } 
-  else if (path.endsWith('index.html') || path ==='/' || path==='') {
+
+  } else if (path.endsWith('index.html') || path ==='/' || path==='') {
     await obtenerDepartamentosYllenarSelect();
-  } 
-  else if (path.endsWith('votaciones.html')) {
+
+  } else if (path.endsWith('votaciones.html')) {
     const params = new URLSearchParams(window.location.search);
     const deptoId = parseInt(params.get('departamento'));
     const rolId = parseInt(params.get('rol'));
