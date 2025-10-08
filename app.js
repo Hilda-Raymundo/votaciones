@@ -23,17 +23,32 @@ async function obtenerDepartamentosYllenarSelect() {
   const selectEl = document.getElementById('nombre');
   if (!selectEl) return;
 
-  const { data, error } = await db.from('departamentos').select('*').order('nombre');
-  if (error) { console.error(error); return; }
+  try {
+    const { data, error } = await db
+      .from('departamentos')
+      .select('*')
+      .order('nombre');
 
-  selectEl.innerHTML = '<option value="" selected disabled>Seleccione departamento</option>';
-  data.forEach(d => {
-    const o = document.createElement('option');
-    o.value = d.id;
-    o.textContent = d.nombre;
-    selectEl.appendChild(o);
-  });
+    if (error) throw error;
+    if (!data || !data.length) {
+      selectEl.innerHTML = '<option value="" disabled>No hay departamentos</option>';
+      return;
+    }
 
+    selectEl.innerHTML = '<option value="" selected disabled>Seleccione departamento</option>';
+    data.forEach(d => {
+      const o = document.createElement('option');
+      o.value = d.id;
+      o.textContent = d.nombre;
+      selectEl.appendChild(o);
+    });
+
+  } catch (err) {
+    console.error('Error al cargar departamentos:', err.message);
+    selectEl.innerHTML = '<option value="" disabled>Error cargando departamentos</option>';
+  }
+
+  // Manejar selección
   selectEl.addEventListener('change', async (e) => {
     const deptoId = parseInt(e.target.value);
     if (document.getElementById('rolesContainer')) {
@@ -42,6 +57,7 @@ async function obtenerDepartamentosYllenarSelect() {
     }
   });
 }
+
 
 async function obtenerRolesPorDepartamento(deptoId) {
   const { data, error } = await db
