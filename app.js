@@ -296,9 +296,9 @@ resultados.sort((a,b)=>b.votos-a.votos).forEach((row, idx)=>{
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${idx+1}</td>
-      <td><span class="fs-3 fw-bold">${row.nombre}</span></td>
+      <td><span class="fs-1 fw-bold">${row.nombre}</span></td>
       <td><img src="${buildFotoUrl(row.foto)}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;"></td>
-      <td><strong class="fs-2">${row.votos}</strong></td>
+      <td><strong class="fs-1">${row.votos}</strong></td>
       <td>
         <button class="btn btn-success btn-sm btnRegistrar" data-id="${row.candidato_id}">Registrar ganador</button>
       </td>
