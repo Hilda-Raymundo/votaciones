@@ -292,19 +292,20 @@ async function cargarInformeParaRonda(rondaId) {
     <tbody></tbody>
   `;
 
-  resultados.sort((a,b)=>b.votos-a.votos).forEach((row, idx)=>{
+resultados.sort((a,b)=>b.votos-a.votos).forEach((row, idx)=>{
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${idx+1}</td>
-      <td>${row.nombre}</td>
+      <td><span class="fs-5 fw-bold">${row.nombre}</span></td>
       <td><img src="${buildFotoUrl(row.foto)}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;"></td>
-      <td><strong>${row.votos}</strong></td>
+      <td><strong class="fs-5">${row.votos}</strong></td>
       <td>
         <button class="btn btn-success btn-sm btnRegistrar" data-id="${row.candidato_id}">Registrar ganador</button>
       </td>
     `;
     table.querySelector('tbody').appendChild(tr);
-  });
+});
+
 
   cont.appendChild(table);
 
