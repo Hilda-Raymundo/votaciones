@@ -27,7 +27,7 @@ async function obtenerDepartamentosYllenarSelect() {
     const { data, error } = await db
       .from('departamentos')
       .select('*')
-      .order('nombre');
+      .order('id');
 
     if (error) throw error;
 
@@ -115,6 +115,8 @@ function mostrarCandidatosHtml(candidatos, contenedorId = 'candidatosContainer')
     if (btn) btn.disabled = true;
     return;
   }
+
+  candidatos.sort((a, b) => a.id - b.id);
 
   candidatos.forEach(c => {
     const div = document.createElement('div');
