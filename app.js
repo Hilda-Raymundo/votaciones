@@ -268,29 +268,47 @@ async function votarSeleccionado() {
   }, 1500);
 }
 
-// ------------------- Informe y ganador -------------------
 async function cargarRondasAbiertasEnSelect() {
   const sel = document.getElementById('rondasSelect');
   if (!sel) return;
 
-  const { data, error } = await db
-    .from('rondas')
-    .select('id, numero, estado, departamentos(nombre), roles(nombre)')
-    .order('creada_at', { ascending: false });
+  // Mostrar mensaje de carga
+  sel.innerHTML = '<option value="" selected disabled>Cargando rondas...</option>';
 
-  if (error) { console.error(error); return; }
+  try {
+    const { data, error } = await db
+      .from('rondas')
+      .select('id, numero, estado, departamentos(nombre), roles(nombre)')
+      .eq('estado', 'open') // Cargar solo las abiertas
+      .order('creada_at', { ascending: false });
 
-  sel.innerHTML = '<option value="" selected disabled>Seleccione ronda</option>';
-  data.forEach(r => {
-    const depto = r.departamentos?.nombre || 'Sin depto';
-    const rol = r.roles?.nombre || 'Sin rol';
-    const opt = document.createElement('option');
-    opt.value = r.id;
-    opt.textContent = `Ronda ${r.numero} - ${depto} / ${rol} (${r.estado})`;
-    sel.appendChild(opt);
-  });
+    if (error) {
+      console.error("Error al cargar rondas de Supabase:", error);
+      sel.innerHTML = '<option value="" disabled>Error al cargar rondas (Ver consola)</option>';
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      sel.innerHTML = '<option value="" disabled>No hay rondas abiertas disponibles</option>';
+      return;
+    }
+
+    // Llenar el select con las rondas encontradas
+    sel.innerHTML = '<option value="" selected disabled>Seleccione ronda</option>';
+    data.forEach(r => {
+      const depto = r.departamentos?.nombre || 'Sin depto';
+      const rol = r.roles?.nombre || 'Sin rol';
+      const opt = document.createElement('option');
+      opt.value = r.id;
+      opt.textContent = `Ronda ${r.numero} - ${depto} / ${rol}`;
+      sel.appendChild(opt);
+    });
+
+  } catch (err) {
+    console.error("Error inesperado en cargarRondasAbiertasEnSelect:", err);
+    sel.innerHTML = '<option value="" disabled>Error de conexión</option>';
+  }
 }
-
 async function cargarInformeParaRonda(rondaId) {
   const { data: infoRonda, error: errRonda } = await db
     .from('rondas')
@@ -425,16 +443,19 @@ async function registrarGanador(rondaId, candidatoId) {
 }
 
 // ------------------- Inicialización -------------------
+// ------------------- Inicialización -------------------
 document.addEventListener('DOMContentLoaded', async () => {
   const path = window.location.pathname;
 
-  // Si existe el select de departamentos en la página actual, cargarlos directamente
+  // 1. Si existe el select de departamentos (ej: index.html)
   const selectDepartamentos = document.getElementById('nombre');
   if (selectDepartamentos) {
     await obtenerDepartamentosYllenarSelect();
   }
 
-  if (path.endsWith('terminar.html')) {
+  // 2. Si existe el select de rondas (ej: terminar.html o /terminar)
+  const selectRondas = document.getElementById('rondasSelect');
+  if (selectRondas || path.includes('terminar')) {
     await cargarRondasAbiertasEnSelect();
 
     const btnInforme = document.getElementById('btnCargarInforme');
@@ -445,12 +466,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         await cargarInformeParaRonda(val);
       });
     }
-  } else if (path.endsWith('votaciones.html')) {
+  } 
+  
+  // 3. Si estamos en votaciones (ej: votaciones.html o /votaciones)
+  if (path.includes('votaciones')) {
     const params = new URLSearchParams(window.location.search);
     const deptoId = parseInt(params.get('departamento'));
     const rolId = parseInt(params.get('rol'));
 
-    if (!deptoId || !rolId) { alert("Faltan parámetros de departamento o rol"); return; }
+    if (!deptoId || !rolId) { 
+      alert("Faltan parámetros de departamento o rol"); 
+      return; 
+    }
 
     await prepararRondaYMostrarCandidatos(deptoId, rolId);
   }
