@@ -62,24 +62,23 @@ async function obtenerDepartamentosYllenarSelect() {
 async function obtenerRolesPorDepartamento(deptoId) {
   const deptoIdLimpio = parseInt(deptoId);
 
+  // Especificamos con el signo de exclamación (!) qué columna FK exacta debe usar Supabase
   const { data, error } = await db
     .from('roles_por_departamento')
-    .select('roles(id,nombre)')
+    .select('roles!rol_id(id, nombre)')
     .eq('departamento_id', deptoIdLimpio);
 
   if (error) { 
-    console.error(error); 
+    console.error("Error al obtener roles:", error); 
     return []; 
   }
 
-  if (!data) return [];
+  if (!data || data.length === 0) return [];
 
-  // Filtramos para asegurarnos de que 'r.roles' no sea nulo o vacío
   return data
-    .map(r => r.roles)
-    .filter(rol => rol !== null && rol !== undefined);
+    .map(item => item.roles)
+    .filter(rol => rol && typeof rol === 'object' && rol.id !== undefined && rol.nombre !== undefined);
 }
-
 function mostrarRolesHtml(roles, departamentoId) {
   const container = document.getElementById('rolesContainer');
   if (!container) return;
