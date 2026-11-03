@@ -60,13 +60,24 @@ async function obtenerDepartamentosYllenarSelect() {
 }
 
 async function obtenerRolesPorDepartamento(deptoId) {
+  const deptoIdLimpio = parseInt(deptoId);
+
   const { data, error } = await db
     .from('roles_por_departamento')
     .select('roles(id,nombre)')
-    .eq('departamento_id', deptoId);
+    .eq('departamento_id', deptoIdLimpio);
 
-  if (error) { console.error(error); return []; }
-  return data.map(r => r.roles);
+  if (error) { 
+    console.error(error); 
+    return []; 
+  }
+
+  if (!data) return [];
+
+  // Filtramos para asegurarnos de que 'r.roles' no sea nulo o vacío
+  return data
+    .map(r => r.roles)
+    .filter(rol => rol !== null && rol !== undefined);
 }
 
 function mostrarRolesHtml(roles, departamentoId) {
