@@ -61,24 +61,31 @@ async function obtenerDepartamentosYllenarSelect() {
 
 async function obtenerRolesPorDepartamento(deptoId) {
   const deptoIdLimpio = parseInt(deptoId);
+  console.log("🔍 Buscando roles para el depto_id:", deptoIdLimpio);
 
-  // 1. Paso único y seguro: consultar la tabla intermedia sin joins complejos
+  // 1. Consultar la tabla intermedia
   const { data: relData, error: relError } = await db
     .from('roles_por_departamento')
-    .select('rol_id')
+    .select('rol_id, departamento_id') // Añadimos departamento_id para verificar qué trae
     .eq('departamento_id', deptoIdLimpio);
 
   if (relError) {
-    console.error("Error al obtener relación de roles:", relError);
+    console.error("❌ Error de Supabase al buscar relación:", relError);
     return [];
   }
 
-  if (!relData || relData.length === 0) return [];
+  console.log("📦 Datos devueltos por 'roles_por_departamento':", relData);
+
+  if (!relData || relData.length === 0) {
+    console.warn("⚠️ Supabase dice que NO hay registros en roles_por_departamento para este ID.");
+    return [];
+  }
 
   // Extraemos los IDs de los roles
   const rolIds = relData.map(item => item.rol_id);
+  console.log("🆔 IDs de roles extraídos:", rolIds);
 
-  // 2. Consultamos directamente la tabla 'roles' con los IDs obtenidos
+  // 2. Consultar la tabla 'roles' con los IDs obtenidos
   const { data: rolesData, error: rolesError } = await db
     .from('roles')
     .select('id, nombre')
@@ -86,10 +93,11 @@ async function obtenerRolesPorDepartamento(deptoId) {
     .order('id');
 
   if (rolesError) {
-    console.error("Error al obtener los roles:", rolesError);
+    console.error("❌ Error al consultar la tabla 'roles':", rolesError);
     return [];
   }
 
+  console.log("✨ Roles finales listos para mostrar:", rolesData);
   return rolesData || [];
 }
 function mostrarRolesHtml(roles, departamentoId) {
