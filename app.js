@@ -272,42 +272,35 @@ async function cargarRondasAbiertasEnSelect() {
   const sel = document.getElementById('rondasSelect');
   if (!sel) return;
 
-  // Mostrar mensaje de carga
   sel.innerHTML = '<option value="" selected disabled>Cargando rondas...</option>';
 
-  try {
-    const { data, error } = await db
-      .from('rondas')
-      .select('id, numero, estado, departamentos(nombre), roles(nombre)')
-      .eq('estado', 'open') // Cargar solo las abiertas
-      .order('creada_at', { ascending: false });
+  const { data, error } = await db
+    .from('rondas')
+    .select('id, numero, estado, departamentos(nombre), roles(nombre)')
+    .order('creada_at', { ascending: false });
 
-    if (error) {
-      console.error("Error al cargar rondas de Supabase:", error);
-      sel.innerHTML = '<option value="" disabled>Error al cargar rondas (Ver consola)</option>';
-      return;
-    }
+  console.log("📦 Respuesta de Rondas:", data);
+  console.log("❌ Error de Supabase:", error);
 
-    if (!data || data.length === 0) {
-      sel.innerHTML = '<option value="" disabled>No hay rondas abiertas disponibles</option>';
-      return;
-    }
-
-    // Llenar el select con las rondas encontradas
-    sel.innerHTML = '<option value="" selected disabled>Seleccione ronda</option>';
-    data.forEach(r => {
-      const depto = r.departamentos?.nombre || 'Sin depto';
-      const rol = r.roles?.nombre || 'Sin rol';
-      const opt = document.createElement('option');
-      opt.value = r.id;
-      opt.textContent = `Ronda ${r.numero} - ${depto} / ${rol}`;
-      sel.appendChild(opt);
-    });
-
-  } catch (err) {
-    console.error("Error inesperado en cargarRondasAbiertasEnSelect:", err);
-    sel.innerHTML = '<option value="" disabled>Error de conexión</option>';
+  if (error) {
+    sel.innerHTML = `<option value="" disabled>Error: ${error.message}</option>`;
+    return;
   }
+
+  if (!data || data.length === 0) {
+    sel.innerHTML = '<option value="" disabled>No hay rondas registradas en la DB</option>';
+    return;
+  }
+
+  sel.innerHTML = '<option value="" selected disabled>Seleccione ronda</option>';
+  data.forEach(r => {
+    const depto = r.departamentos?.nombre || 'Sin depto';
+    const rol = r.roles?.nombre || 'Sin rol';
+    const opt = document.createElement('option');
+    opt.value = r.id;
+    opt.textContent = `Ronda ${r.numero} - ${depto} / ${rol} (${r.estado})`;
+    sel.appendChild(opt);
+  });
 }
 async function cargarInformeParaRonda(rondaId) {
   const { data: infoRonda, error: errRonda } = await db
