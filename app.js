@@ -467,11 +467,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const deptoId = parseInt(params.get('departamento'));
     const rolId = parseInt(params.get('rol'));
 
-    if (!deptoId || !rolId) { 
-      alert("Faltan parámetros de departamento o rol"); 
-      return; 
-    }
-
     await prepararRondaYMostrarCandidatos(deptoId, rolId);
   }
 });
