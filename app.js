@@ -397,6 +397,12 @@ async function registrarGanador(rondaId, candidatoId) {
 document.addEventListener('DOMContentLoaded', async () => {
   const path = window.location.pathname;
 
+  // Si existe el select de departamentos en la página actual, cargarlos directamente
+  const selectDepartamentos = document.getElementById('nombre');
+  if (selectDepartamentos) {
+    await obtenerDepartamentosYllenarSelect();
+  }
+
   if (path.endsWith('terminar.html')) {
     await cargarRondasAbiertasEnSelect();
 
@@ -408,10 +414,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         await cargarInformeParaRonda(val);
       });
     }
-
-  } else if (path.endsWith('index.html') || path ==='/' || path==='') {
-    await obtenerDepartamentosYllenarSelect();
-
   } else if (path.endsWith('votaciones.html')) {
     const params = new URLSearchParams(window.location.search);
     const deptoId = parseInt(params.get('departamento'));
