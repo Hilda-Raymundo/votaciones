@@ -62,22 +62,35 @@ async function obtenerDepartamentosYllenarSelect() {
 async function obtenerRolesPorDepartamento(deptoId) {
   const deptoIdLimpio = parseInt(deptoId);
 
-  // Especificamos con el signo de exclamación (!) qué columna FK exacta debe usar Supabase
-  const { data, error } = await db
+  // 1. Paso único y seguro: consultar la tabla intermedia sin joins complejos
+  const { data: relData, error: relError } = await db
     .from('roles_por_departamento')
-    .select('roles!rol_id(id, nombre)')
+    .select('rol_id')
     .eq('departamento_id', deptoIdLimpio);
 
-  if (error) { 
-    console.error("Error al obtener roles:", error); 
-    return []; 
+  if (relError) {
+    console.error("Error al obtener relación de roles:", relError);
+    return [];
   }
 
-  if (!data || data.length === 0) return [];
+  if (!relData || relData.length === 0) return [];
 
-  return data
-    .map(item => item.roles)
-    .filter(rol => rol && typeof rol === 'object' && rol.id !== undefined && rol.nombre !== undefined);
+  // Extraemos los IDs de los roles
+  const rolIds = relData.map(item => item.rol_id);
+
+  // 2. Consultamos directamente la tabla 'roles' con los IDs obtenidos
+  const { data: rolesData, error: rolesError } = await db
+    .from('roles')
+    .select('id, nombre')
+    .in('id', rolIds)
+    .order('id');
+
+  if (rolesError) {
+    console.error("Error al obtener los roles:", rolesError);
+    return [];
+  }
+
+  return rolesData || [];
 }
 function mostrarRolesHtml(roles, departamentoId) {
   const container = document.getElementById('rolesContainer');
